@@ -1,0 +1,30 @@
+name: Automatizar mi APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar emulador e instalar APK
+        uses: SweetRainGarden/SrgGactionEmulatorenvsetupAndroid@main
+        with:
+          apk-path: 'Entel Venta Terreno.apk'
+          api-level: '30'
+          profile: 'pixel_4'
+
+      - name: Automatizar acciones
+        run: |
+          sleep 10
+          echo "Emulador listo"
+          adb exec-out screencap -p > pantalla.png
+
+      - name: Guardar captura
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultado
+          path: ./*.png

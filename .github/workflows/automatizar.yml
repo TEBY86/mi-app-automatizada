@@ -5,28 +5,50 @@ on:
 jobs:
   test:
     runs-on: macos-latest
+    timeout-minutes: 30  # ✅ Evita que corra indefinidamente
+
     steps:
       - name: Clonar repositorio
         uses: actions/checkout@v4
 
+      - name: Verificar que el APK existe
+        run: ls -la *.apk  # ✅ Falla rápido si no está el archivo
+
       - name: Correr Emulador y Ejecutar APK
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 29       # Versión más ligera de Android
-          target: default     # Sin Google Play para que inicie rápido
+          api-level: 29
+          target: default
           arch: x86_64
-          profile: Nexus 6    # Perfil clásico que consume pocos recursos
+          profile: Nexus 6
           disable-animations: true
+          emulator-boot-timeout: 300  # ✅ Espera hasta 5 min para que arranque
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: |
-            echo "Esperando que el sistema responda..."
+            echo "Esperando que Android esté completamente listo..."
             adb wait-for-device
-            adb install "Entel Venta Terreno.apk"
-            sleep 20
+
+            # ✅ Esperar boot completo (no solo que conecte el dispositivo)
+            while [ "$(adb shell getprop sys.boot_completed 2>/dev/null)" != "1" ]; do
+              echo "Aún iniciando..."
+              sleep 5
+            done
+
+            echo "Android listo. Instalando APK..."
+            adb install "Entel_Venta_Terreno.apk"  # Sin espacios en el nombre
+
+            echo "Lanzando la app..."
+            # ✅ Reemplaza con el package name real de tu APK
+            adb shell monkey -p com.tu.package 1
+
+            sleep 15
+
             echo "Tomando captura de pantalla..."
             adb exec-out screencap -p > pantalla.png
+            echo "Captura guardada."
 
       - name: Guardar captura
+        if: always()  # ✅ Guarda aunque falle algún paso
         uses: actions/upload-artifact@v4
         with:
           name: resultado

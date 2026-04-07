@@ -1,10 +1,11 @@
 name: Automatizar mi APK
+
 on:
   workflow_dispatch:
 
 jobs:
   test:
-    runs-on: ubuntu-22.04      # ✅ CRÍTICO: NO usar ubuntu-latest (=24.04, roto)
+    runs-on: ubuntu-22.04
     timeout-minutes: 30
 
     steps:
@@ -55,9 +56,19 @@ jobs:
             echo "Boot: $BOOT"
             sleep 5
           done
+          
           echo "Instalando APK..."
           adb install -r "$GITHUB_WORKSPACE/Entel_Venta_Terreno.apk"
+          
+          echo "Obteniendo nombre del paquete y abriendo la App..."
+          # Obtiene el nombre interno de la app para poder abrirla
+          PKG_NAME=$(adb shell pm list packages -3 | cut -f 2 -d ":")
+          echo "Abriendo aplicación: $PKG_NAME"
+          adb shell monkey -p $PKG_NAME -c android.intent.category.LAUNCHER 1
+          
+          echo "Esperando 15 segundos para que la App cargue por completo..."
           sleep 15
+          
           echo "Capturando pantalla..."
           adb shell screencap /sdcard/pantalla.png
           adb pull /sdcard/pantalla.png "$GITHUB_WORKSPACE/pantalla.png"

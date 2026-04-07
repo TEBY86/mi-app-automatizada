@@ -4,7 +4,7 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04      # ✅ CRÍTICO: NO usar ubuntu-latest (=24.04, roto)
     timeout-minutes: 30
 
     steps:
@@ -17,16 +17,20 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Cache del AVD (evita reinstalar el emulador cada vez)
+      - name: Instalar emulador Android
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "emulator" "platform-tools" "system-images;android-29;default;x86_64" > /dev/null
+
+      - name: Cache del AVD
         uses: actions/cache@v4
         id: avd-cache
         with:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-29
+          key: avd-29-ubuntu22
 
-      - name: Crear snapshot del AVD (solo si no hay cache)
+      - name: Crear snapshot AVD (solo si no hay cache)
         if: steps.avd-cache.outputs.cache-hit != 'true'
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -38,7 +42,30 @@ jobs:
           disable-animations: false
           script: echo "Snapshot creado."
 
-      - name: Correr Emulador e instalar APK
+      - name: Crear script de automatización
+        run: |
+          cat > run_apk.sh << 'EOF'
+          #!/bin/bash
+          set -e
+          echo "Esperando boot completo..."
+          adb wait-for-device
+          BOOT=""
+          while [ "$BOOT" != "1" ]; do
+            BOOT=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r\n')
+            echo "Boot: $BOOT"
+            sleep 5
+          done
+          echo "Instalando APK..."
+          adb install -r "$GITHUB_WORKSPACE/Entel_Venta_Terreno.apk"
+          sleep 15
+          echo "Capturando pantalla..."
+          adb shell screencap /sdcard/pantalla.png
+          adb pull /sdcard/pantalla.png "$GITHUB_WORKSPACE/pantalla.png"
+          ls -la "$GITHUB_WORKSPACE/pantalla.png"
+          EOF
+          chmod +x run_apk.sh
+
+      - name: Correr emulador e instalar APK
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 29
@@ -47,22 +74,7 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot-save
           disable-animations: true
-          script: |
-            echo "Esperando boot completo..."
-            adb wait-for-device
-            while [ "$(adb shell getprop sys.boot_completed 2>/dev/null)" != "1" ]; do
-              echo "Iniciando..."
-              sleep 5
-            done
-
-            echo "Instalando APK..."
-            adb install -r "Entel_Venta_Terreno.apk"
-
-            sleep 15
-
-            echo "Capturando pantalla..."
-            adb shell screencap -p /sdcard/pantalla.png
-            adb pull /sdcard/pantalla.png ./pantalla.png
+          script: bash run_apk.sh
 
       - name: Guardar captura
         if: always()

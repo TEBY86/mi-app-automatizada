@@ -11,7 +11,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configurar emulador e instalar APK
-        uses: SweetRainGarden/SrgGactionEmulatorenvsetupAndroid@main
+        uses: SweetRainGarden/SrgGactionEmulatorenvsetupAndroid@v1
         with:
           apk-path: 'Entel Venta Terreno.apk'
           api-level: '30'

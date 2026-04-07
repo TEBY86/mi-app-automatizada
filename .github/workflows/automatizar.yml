@@ -1,23 +1,27 @@
 name: Automatizar mi APK
 on:
   workflow_dispatch:
+
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - name: Clonar repositorio
         uses: actions/checkout@v4
-      - name: Configurar emulador e instalar APK
-        uses: SweetRainGarden/SrgGactionEmulatorenvsetupAndroid@0826978644558e0a81180237c87c06eb1863ccb5
+
+      - name: Correr Emulador y Ejecutar APK
+        uses: reactivecircus/android-emulator-runner@v2
         with:
-          apk-path: 'Entel Venta Terreno.apk'
-          api-level: '30'
-          profile: 'pixel_4'
-      - name: Automatizar acciones
-        run: |
-          sleep 10
-          echo "Emulador listo"
-          adb exec-out screencap -p > pantalla.png
+          api-level: 30
+          target: google_apis
+          arch: x86_64
+          profile: pixel_4
+          script: |
+            adb install "Entel Venta Terreno.apk"
+            sleep 15
+            echo "Emulador listo y App instalada"
+            adb exec-out screencap -p > pantalla.png
+
       - name: Guardar captura
         uses: actions/upload-artifact@v4
         with:

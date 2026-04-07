@@ -47,32 +47,38 @@ jobs:
         run: |
           cat > run_apk.sh << 'EOF'
           #!/bin/bash
-          set -e
-          echo "Esperando boot completo..."
+          # MODO DETECTIVE ACTIVADO
+          set -x  # Imprime cada paso en el registro
+          
+          echo "=== Esperando boot completo ==="
           adb wait-for-device
           BOOT=""
           while [ "$BOOT" != "1" ]; do
             BOOT=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r\n')
-            echo "Boot: $BOOT"
             sleep 5
           done
           
-          echo "Instalando APK..."
-          adb install -r "$GITHUB_WORKSPACE/Entel_Venta_Terreno.apk"
+          echo "=== Intentando Instalar APK ==="
+          # Si falla, no detiene el proceso gracias a que quitamos 'set -e'
+          adb install -r "$GITHUB_WORKSPACE/Entel_Venta_Terreno.apk" || echo "ERROR_AL_INSTALAR"
           
-          echo "Obteniendo nombre del paquete y abriendo la App..."
-          # Obtiene el nombre interno de la app para poder abrirla
-          PKG_NAME=$(adb shell pm list packages -3 | cut -f 2 -d ":")
-          echo "Abriendo aplicación: $PKG_NAME"
-          adb shell monkey -p $PKG_NAME -c android.intent.category.LAUNCHER 1
+          echo "=== Listando Apps de Terceros ==="
+          adb shell pm list packages -3 || echo "ERROR_AL_LISTAR"
+          PKG_NAME=$(adb shell pm list packages -3 | cut -f 2 -d ":" | head -n 1)
           
-          echo "Esperando 15 segundos para que la App cargue por completo..."
+          echo "=== Intentando Abrir App ==="
+          if [ ! -z "$PKG_NAME" ]; then
+            adb shell monkey -p $PKG_NAME -c android.intent.category.LAUNCHER 1 || echo "ERROR_AL_ABRIR"
+          else
+            echo "NO_SE_ENCONTRO_PAQUETE"
+          fi
+          
+          echo "=== Esperando 15s ==="
           sleep 15
           
-          echo "Capturando pantalla..."
+          echo "=== Capturando pantalla SIEMPRE ==="
           adb shell screencap /sdcard/pantalla.png
           adb pull /sdcard/pantalla.png "$GITHUB_WORKSPACE/pantalla.png"
-          ls -la "$GITHUB_WORKSPACE/pantalla.png"
           EOF
           chmod +x run_apk.sh
 

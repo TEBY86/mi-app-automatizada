@@ -12,10 +12,10 @@ jobs:
       - name: Correr Emulador y Ejecutar APK
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 29       # Bajamos a API 29 que es más estable y ligera
-          target: default     # Usamos la versión estándar (sin Google Play) para que sea más rápido
+          api-level: 29       # Versión más ligera de Android
+          target: default     # Sin Google Play para que inicie rápido
           arch: x86_64
-          profile: Nexus 6    # Un perfil más clásico que consume menos recursos
+          profile: Nexus 6    # Perfil clásico que consume pocos recursos
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: |
